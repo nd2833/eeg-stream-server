@@ -7,7 +7,7 @@
     "start": "node eeg_server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "express": "^4.22.1",
     "serialport": "^13.0.0",
     "ws": "^8.18.0"
   }
