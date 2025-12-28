@@ -1,13 +1,12 @@
-// EEG Stream Server — Railway Safe (NO external deps)
+// eeg_server.js — Railway-stable, no dependencies
 
 const http = require("http");
 
 const PORT = process.env.PORT || 8080;
-
 let latestEEG = null;
 
 const server = http.createServer((req, res) => {
-  // ---- CORS (manual, bulletproof) ----
+  // ---- CORS (manual, safe) ----
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -17,47 +16,39 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
-  // ---- POST /eeg  (ingest data) ----
+  // ---- Railway health check ----
+  if (req.method === "GET" && req.url === "/") {
+    res.writeHead(200, { "Content-Type": "text/plain" });
+    return res.end("EEG server live");
+  }
+
+  // ---- POST EEG ----
   if (req.method === "POST" && req.url === "/eeg") {
     let body = "";
-
-    req.on("data", chunk => {
-      body += chunk.toString();
-    });
-
+    req.on("data", chunk => (body += chunk));
     req.on("end", () => {
       try {
         latestEEG = JSON.parse(body);
-        console.log("EEG received:", latestEEG);
-      } catch (err) {
-        console.error("Invalid EEG JSON");
+        console.log("EEG received");
+      } catch {
+        console.error("Invalid EEG payload");
       }
-
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "ok" }));
     });
-
     return;
   }
 
-  // ---- GET /eeg  (Base fetches here) ----
+  // ---- GET EEG ----
   if (req.method === "GET" && req.url === "/eeg") {
     res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify(latestEEG || {}));
-    return;
-  }
-
-  // ---- Health check ----
-  if (req.method === "GET" && req.url === "/") {
-    res.writeHead(200);
-    res.end("EEG server live");
-    return;
+    return res.end(JSON.stringify(latestEEG || {}));
   }
 
   res.writeHead(404);
   res.end();
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`EEG server LIVE on port ${PORT}`);
 });

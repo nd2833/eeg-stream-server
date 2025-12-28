@@ -4,5 +4,8 @@
   "main": "eeg_server.js",
   "scripts": {
     "start": "node eeg_server.js"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
