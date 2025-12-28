@@ -1,9 +1,12 @@
-// eeg_server.js
-// EEG ingestion server with CORS enabled (Railway-ready)
+// eeg_server.js — Railway-compatible EEG server
 
 const http = require("http");
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT;
+if (!PORT) {
+  console.error("PORT env variable missing");
+  process.exit(1);
+}
 
 let latestEEG = null;
 
@@ -18,22 +21,10 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
-  // ---- HEALTH CHECK ----
-  if (req.method === "GET" && req.url === "/") {
-    console.log("Health check hit");
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "EEG server alive" }));
-    return;
-  }
-
-  // Receive EEG from local parser
   if (req.method === "POST" && req.url === "/eeg") {
     let body = "";
 
-    req.on("data", chunk => {
-      body += chunk;
-    });
-
+    req.on("data", chunk => (body += chunk));
     req.on("end", () => {
       try {
         latestEEG = JSON.parse(body);
@@ -48,7 +39,6 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Serve latest EEG to Base
   if (req.method === "GET" && req.url === "/eeg") {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(latestEEG || {}));
@@ -59,6 +49,6 @@ const server = http.createServer((req, res) => {
   res.end();
 });
 
-server.listen(PORT, () => {
-  console.log(`EEG server running on port ${PORT}`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`EEG server listening on ${PORT}`);
 });
