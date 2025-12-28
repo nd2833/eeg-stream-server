@@ -3,28 +3,33 @@ import cors from "cors";
 
 const app = express();
 
-// allow all origins for now (Base44 needs this)
 app.use(cors());
 app.use(express.json());
 
-// health checks (Railway needs these)
-app.get("/", (req, res) => res.status(200).send("EEG SERVER OK"));
-app.get("/health", (req, res) => res.status(200).json({ ok: true }));
+// --- REQUIRED FOR RAILWAY ---
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
 
+// --- MAIN ROUTES ---
 let latestEEG = {};
 
+app.get("/", (req, res) => {
+  res.send("EEG SERVER OK");
+});
+
 app.get("/eeg", (req, res) => {
-  res.status(200).json(latestEEG);
+  res.json(latestEEG);
 });
 
 app.post("/eeg", (req, res) => {
-  latestEEG = req.body || {};
-  console.log("EEG RECEIVED", latestEEG);
-  res.status(200).json({ status: "ok" });
+  latestEEG = req.body;
+  res.json({ status: "ok" });
 });
 
-// 🔴 THIS IS CRITICAL
-const PORT = Number(process.env.PORT);
+// --- PORT ---
+const PORT = process.env.PORT || 8080;
+
 app.listen(PORT, "0.0.0.0", () => {
-  console.log("Listening on PORT =", PORT);
+  console.log(`Listening on PORT = ${PORT}`);
 });
