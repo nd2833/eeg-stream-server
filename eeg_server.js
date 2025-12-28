@@ -1,5 +1,3 @@
-// eeg_server.js — Railway-compatible EEG server
-
 const http = require("http");
 
 const PORT = process.env.PORT;
@@ -11,7 +9,7 @@ if (!PORT) {
 let latestEEG = null;
 
 const server = http.createServer((req, res) => {
-  // ---- CORS ----
+  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -21,10 +19,16 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
+  // ✅ REQUIRED: Railway health check
+  if (req.method === "GET" && req.url === "/") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "ok" }));
+    return;
+  }
+
   if (req.method === "POST" && req.url === "/eeg") {
     let body = "";
-
-    req.on("data", chunk => (body += chunk));
+    req.on("data", c => (body += c));
     req.on("end", () => {
       try {
         latestEEG = JSON.parse(body);
@@ -32,7 +36,6 @@ const server = http.createServer((req, res) => {
       } catch {
         console.error("Invalid EEG payload");
       }
-
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "ok" }));
     });
