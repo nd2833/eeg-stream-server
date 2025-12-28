@@ -1,8 +1,7 @@
 {
   "name": "eeg-stream-server",
   "version": "1.0.0",
-  "main": "eeg_server.js",
-  "type": "commonjs",
+  "type": "module",
   "scripts": {
     "start": "node eeg_server.js"
   },
