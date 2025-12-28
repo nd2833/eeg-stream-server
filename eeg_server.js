@@ -1,34 +1,58 @@
 // eeg_server.js
-const express = require("express");
-const WebSocket = require("ws");
+// Simple EEG ingestion server with CORS enabled
 
-const app = express();
-app.use(express.json());
+const http = require("http");
+
+const PORT = process.env.PORT || 8080;
 
 let latestEEG = null;
 
-// HTTP endpoint (parser sends data here)
-app.post("/eeg", (req, res) => {
-  latestEEG = req.body;
-  console.log("Incoming EEG:", latestEEG);
-  res.sendStatus(200);
+const server = http.createServer((req, res) => {
+  // ---- CORS HEADERS (THIS IS THE FIX) ----
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // broadcast to websocket clients
-  wss.clients.forEach(ws => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify(latestEEG));
-    }
-  });
+  // Preflight request
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    return res.end();
+  }
+
+  // Receive EEG data
+  if (req.method === "POST" && req.url === "/eeg") {
+    let body = "";
+
+    req.on("data", chunk => {
+      body += chunk;
+    });
+
+    req.on("end", () => {
+      try {
+        latestEEG = JSON.parse(body);
+        console.log("Incoming EEG:", latestEEG);
+      } catch (e) {
+        console.error("Invalid EEG payload");
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "ok" }));
+    });
+
+    return;
+  }
+
+  // Expose latest EEG to Base
+  if (req.method === "GET" && req.url === "/eeg") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(latestEEG || {}));
+    return;
+  }
+
+  res.writeHead(404);
+  res.end();
 });
 
-// Health check
-app.get("/", (req, res) => {
-  res.send("EEG server running");
+server.listen(PORT, () => {
+  console.log(`EEG server running on port ${PORT}`);
 });
-
-const server = app.listen(8081, () => {
-  console.log("EEG server running on port 8081");
-});
-
-// WebSocket
-const wss = new WebSocket.Server({ server });
