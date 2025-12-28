@@ -2,6 +2,7 @@
   "name": "eeg-stream-server",
   "version": "1.0.0",
   "type": "module",
+  "main": "eeg_server.js",
   "scripts": {
     "start": "node eeg_server.js"
   },
@@ -9,3 +10,4 @@
     "express": "^4.21.2"
   }
 }
+

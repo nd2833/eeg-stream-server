@@ -1,4 +1,3 @@
-// eeg_server.js
 import express from "express";
 
 const app = express();
@@ -16,7 +15,7 @@ app.get("/eeg", (req, res) => {
 
 app.post("/eeg", (req, res) => {
   latestEEG = req.body;
-  console.log("EEG RECEIVED");
+  console.log("EEG RECEIVED", latestEEG);
   res.json({ status: "ok" });
 });
 
@@ -24,3 +23,4 @@ const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`EEG server LIVE on port ${PORT}`);
 });
+
