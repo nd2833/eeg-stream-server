@@ -1,6 +1,8 @@
 import express from "express";
+import cors from "cors";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 let latestEEG = {};
@@ -15,7 +17,6 @@ app.get("/eeg", (req, res) => {
 
 app.post("/eeg", (req, res) => {
   latestEEG = req.body;
-  console.log("EEG RECEIVED", latestEEG);
   res.json({ status: "ok" });
 });
 
