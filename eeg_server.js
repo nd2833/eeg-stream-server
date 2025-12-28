@@ -1,54 +1,85 @@
 // eeg_server.js
-// FINAL Railway-stable EEG server using Express
+// FINAL Railway + Base-compatible EEG server
 
-const express = require("express");
-const app = express();
+const http = require("http");
 
 const PORT = process.env.PORT || 8080;
 
-// ---- middleware ----
-app.use(express.json());
+let latestEEG = {};
 
-// ---- CORS ----
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS, HEAD");
+// ---- Helper: dynamic CORS ----
+function setCORS(req, res) {
+  const origin = req.headers.origin;
+
+  // Allow Base + previews + localhost
+  if (
+    origin &&
+    (
+      origin.includes("base44.app") ||
+      origin.includes("app.base44.com") ||
+      origin.includes("localhost")
+    )
+  ) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  } else {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (req.method === "OPTIONS") return res.sendStatus(204);
-  next();
+}
+
+const server = http.createServer((req, res) => {
+  setCORS(req, res);
+
+  // ---- Preflight ----
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    return res.end();
+  }
+
+  // ---- HEALTH CHECK (REQUIRED BY RAILWAY) ----
+  if (req.method === "GET" && req.url === "/") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      status: "ok",
+      service: "eeg-stream-server",
+      timestamp: Date.now()
+    }));
+  }
+
+  // ---- RECEIVE EEG ----
+  if (req.method === "POST" && req.url === "/eeg") {
+    let body = "";
+
+    req.on("data", chunk => body += chunk);
+
+    req.on("end", () => {
+      try {
+        latestEEG = JSON.parse(body);
+        console.log("EEG RECEIVED:", latestEEG);
+      } catch (e) {
+        console.error("Invalid EEG payload");
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "ok" }));
+    });
+
+    return;
+  }
+
+  // ---- SERVE EEG ----
+  if (req.method === "GET" && req.url === "/eeg") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify(latestEEG));
+  }
+
+  // ---- 404 ----
+  res.writeHead(404);
+  res.end();
 });
 
-// ---- in-memory EEG ----
-let latestEEG = null;
-
-// ---- ROOT (Railway health check) ----
-app.get("/", (req, res) => {
-  res.status(200).json({ status: "ok" });
-});
-
-app.head("/", (req, res) => {
-  res.sendStatus(200);
-});
-
-// ---- RECEIVE EEG ----
-app.post("/eeg", (req, res) => {
-  latestEEG = req.body;
-  console.log("Incoming EEG:", latestEEG);
-  res.json({ status: "ok" });
-});
-
-// ---- SERVE EEG ----
-app.get("/eeg", (req, res) => {
-  res.json(latestEEG || {});
-});
-
-// ---- START SERVER ----
-app.listen(PORT, "0.0.0.0", () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`EEG server LIVE on port ${PORT}`);
-});
-
-// ---- KEEP PROCESS ALIVE ----
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received — shutting down gracefully");
-  process.exit(0);
 });
