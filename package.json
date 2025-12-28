@@ -5,7 +5,7 @@
   "scripts": {
     "start": "node eeg_server.js"
   },
-  "engines": {
-    "node": ">=18"
+  "dependencies": {
+    "express": "^4.19.2"
   }
 }
