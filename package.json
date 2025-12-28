@@ -1,12 +1,12 @@
 {
   "name": "eeg-stream-server",
   "version": "1.0.0",
-  "type": "module",
   "main": "eeg_server.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node eeg_server.js"
   },
   "dependencies": {
-    "express": "^4.22.1"
+    "express": "^4.21.2"
   }
 }
